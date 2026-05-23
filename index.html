@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PremiumLens — Auto Insurance Comparison Dashboard</title>
+<style>
+  :root {
+    --bg: #f0f4f8; --card: #fff; --text: #1a202c; --muted: #718096;
+    --border: #e2e8f0; --accent: #3182ce; --green: #38a169; --red: #e53e3e;
+    --yellow: #d69e2e; --purple: #805ad5;
+  }
+  [data-theme="dark"] {
+    --bg: #1a202c; --card: #2d3748; --text: #f7fafc; --muted: #a0aec0;
+    --border: #4a5568; --accent: #63b3ed; --green: #68d391; --red: #fc8181;
+    --yellow: #f6e05e; --purple: #b794f4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); transition: background .3s, color .3s; }
+  header { background: linear-gradient(135deg, #1a365d 0%, #2a4a7f 100%); color: #fff; padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+  header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+  header p { font-size: .85rem; opacity: .8; margin-top: .25rem; }
+  .theme-btn { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: .4rem .9rem; border-radius: 20px; cursor: pointer; font-size: .85rem; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media(max-width:768px){ .grid2{grid-template-columns:1fr;} }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+  label { display: block; font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: .3rem; margin-top: .75rem; text-transform: uppercase; letter-spacing: .5px; }
+  input, select { width: 100%; padding: .55rem .8rem; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: .9rem; transition: border .2s; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .checkbox-row { display: flex; align-items: center; gap: .5rem; margin-top: .6rem; }
+  .checkbox-row input { width: auto; }
+  .checkbox-row label { margin: 0; text-transform: none; font-size: .9rem; color: var(--text); }
+  .calc-btn { width: 100%; margin-top: 1.25rem; padding: .75rem; background: linear-gradient(135deg, #3182ce, #2c5282); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .calc-btn:hover { opacity: .9; }
+  #results { margin-top: 1.5rem; display: none; }
+  .summary-card { background: linear-gradient(135deg, #276749, #38a169); color: #fff; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  .summary-card .carrier-name { font-size: 1.4rem; font-weight: 800; }
+  .summary-card .price { font-size: 2.2rem; font-weight: 900; margin: .25rem 0; }
+  .summary-card .monthly { font-size: 1rem; opacity: .85; }
+  .age-callout { border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; font-size: .9rem; line-height: 1.5; }
+  .age-callout.milestone { background: #fefcbf; border-left: 4px solid #d69e2e; color: #744210; }
+  .age-callout.future { background: #ebf8ff; border-left: 4px solid #3182ce; color: #2c5282; }
+  .age-callout.past { background: #f0fff4; border-left: 4px solid #38a169; color: #276749; }
+  [data-theme="dark"] .age-callout.milestone { background: #2d2a00; color: #f6e05e; }
+  [data-theme="dark"] .age-callout.future { background: #0a1628; color: #63b3ed; }
+  [data-theme="dark"] .age-callout.past { background: #0a1f0f; color: #68d391; }
+  table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  th { background: var(--bg); padding: .6rem .75rem; text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); border-bottom: 2px solid var(--border); }
+  td { padding: .65rem .75rem; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+  .badge { display: inline-block; padding: .15rem .5rem; border-radius: 20px; font-size: .75rem; font-weight: 700; }
+  .badge-best { background: #c6f6d5; color: #276749; }
+  [data-theme="dark"] .badge-best { background: #1c4532; color: #68d391; }
+  .bar-cell { display: flex; align-items: center; gap: .5rem; }
+  .bar { height: 8px; border-radius: 4px; background: var(--accent); min-width: 4px; transition: width .4s; }
+  .discount-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .75rem; margin-top: .75rem; }
+  .d-card { border: 1.5px solid var(--border); border-radius: 10px; padding: .85rem; }
+  .d-card.active { border-color: var(--green); background: rgba(56,161,105,.06); }
+  .d-carrier { font-weight: 700; font-size: .85rem; margin-bottom: .4rem; }
+  .d-item { display: flex; justify-content: space-between; font-size: .8rem; margin-top: .25rem; }
+  .d-item span:last-child { font-weight: 600; color: var(--green); }
+  .checklist { list-style: none; }
+  .checklist li { display: flex; align-items: flex-start; gap: .6rem; padding: .5rem 0; border-bottom: 1px solid var(--border); font-size: .9rem; }
+  .checklist li:last-child { border-bottom: none; }
+  .check-box { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 5px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background .2s, border-color .2s; margin-top: .05rem; }
+  .check-box.checked { background: var(--green); border-color: var(--green); }
+  .check-box.checked::after { content: '✓'; color: #fff; font-size: .75rem; font-weight: 700; }
+  .checklist li.done { color: var(--muted); text-decoration: line-through; }
+  .discount-matrix { overflow-x: auto; margin-top: .75rem; }
+  .discount-matrix table th { white-space: nowrap; }
+  .dm-val { text-align: center; font-size: .8rem; color: var(--green); font-weight: 600; }
+  .dm-na { text-align: center; font-size: .8rem; color: var(--muted); }
+  .highlight-row { background: rgba(49,130,206,.07); }
+  [data-theme="dark"] .highlight-row { background: rgba(99,179,237,.07); }
+  .section-gap { margin-top: 1.5rem; }
+  .disclaimer { font-size: .75rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .85rem 1rem; margin-top: 1.5rem; line-height: 1.5; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🛡️ PremiumLens</h1>
+    <p>Auto Insurance Comparison Dashboard — Alabama Edition</p>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()">🌙 Dark Mode</button>
+</header>
+
+<div class="container">
+  <div class="grid2">
+    <!-- INPUT FORM -->
+    <div class="card">
+      <h2>📋 Your Profile</h2>
+      <label>Age</label>
+      <input type="number" id="age" value="24" min="16" max="85">
+      <label>State</label>
+      <select id="state">
+        <option value="AL" selected>Alabama</option>
+        <option value="TX">Texas</option>
+        <option value="FL">Florida</option>
+        <option value="CA">California</option>
+        <option value="NY">New York</option>
+        <option value="OH">Ohio</option>
+        <option value="GA">Georgia</option>
+        <option value="TN">Tennessee</option>
+      </select>
+      <label>Vehicle Make/Model</label>
+      <input type="text" id="vehicle" value="2022 Honda Civic">
+      <label>Vehicle Class</label>
+      <select id="vclass">
+        <option value="sedan" selected>Sedan</option>
+        <option value="suv">SUV / Crossover</option>
+        <option value="truck">Pickup Truck</option>
+        <option value="sports">Sports Car</option>
+        <option value="ev">Electric Vehicle</option>
+        <option value="luxury">Luxury</option>
+        <option value="minivan">Minivan</option>
+      </select>
+      <label>Annual Mileage</label>
+      <select id="mileage">
+        <option value="low">Under 7,500 miles (low)</option>
+        <option value="medium" selected>7,500 – 15,000 (average)</option>
+        <option value="high">15,000 – 25,000 (high)</option>
+        <option value="very_high">Over 25,000 (very high)</option>
+      </select>
+      <label>Credit Tier</label>
+      <select id="credit">
+        <option value="excellent">Excellent (750+)</option>
+        <option value="good" selected>Good (670–749)</option>
+        <option value="fair">Fair (580–669)</option>
+        <option value="poor">Poor (below 580)</option>
+      </select>
+      <label>Marital Status</label>
+      <select id="marital">
+        <option value="single" selected>Single</option>
+        <option value="married">Married</option>
+      </select>
+      <label>Coverage Level</label>
+      <select id="coverage">
+        <option value="state_min">State Minimum</option>
+        <option value="standard" selected>Standard Full Coverage</option>
+        <option value="premium">Premium Full Coverage</option>
+      </select>
+      <label>At-Fault Accidents (last 3 yrs)</label>
+      <input type="number" id="accidents" value="0" min="0" max="5">
+      <label>Traffic Violations (last 3 yrs)</label>
+      <input type="number" id="violations" value="0" min="0" max="5">
+      <label>DUI / DWI (last 5 yrs)</label>
+      <input type="number" id="dui" value="0" min="0" max="2">
+      <label>Years Licensed</label>
+      <input type="number" id="years_licensed" value="6" min="0" max="60">
+      <h2 style="margin-top:1.25rem;">🏷️ Discounts You May Qualify For</h2>
+      <div class="checkbox-row"><input type="checkbox" id="d_bundle"><label for="d_bundle">Bundle Home + Auto</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_telematics"><label for="d_telematics">Telematics / Safe Driver App</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_multivehicle"><label for="d_multivehicle">Multi-Vehicle</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_paperless"><label for="d_paperless">Paperless + AutoPay</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_goodstudent"><label for="d_goodstudent">Good Student (GPA 3.0+)</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_loyalty"><label for="d_loyalty">Loyalty (3+ years same carrier)</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_military"><label for="d_military">Military / Federal Employee</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_newcar"><label for="d_newcar">New Car (0–2 years old)</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="d_antitheft"><label for="d_antitheft">Anti-Theft Device</label></div>
+      <button class="calc-btn" onclick="calculate()">⚡ Calculate My Premiums</button>
+    </div>
+
+    <!-- RESULTS -->
+    <div>
+      <div id="results">
+        <div id="summary-card" class="summary-card"></div>
+        <div id="age-callout" class="age-callout"></div>
+
+        <!-- Ranked Table -->
+        <div class="card">
+          <h2>📊 Carrier Comparison</h2>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Carrier</th><th>Base/yr</th><th>Disc %</th><th>Final/yr</th><th>Monthly</th><th>Relative</th>
+              </tr></thead>
+              <tbody id="results-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Discount Breakdown -->
+        <div class="card section-gap">
+          <h2>💰 Discount Breakdown</h2>
+          <div id="discount-cards" class="discount-grid"></div>
+        </div>
+
+        <!-- Discount Matrix -->
+        <div class="card section-gap">
+          <h2>📋 Max Published Discounts by Carrier</h2>
+          <div class="discount-matrix">
+            <table>
+              <thead>
+                <tr>
+                  <th>Discount</th>
+                  <th>Geico</th><th>Progressive</th><th>State Farm</th><th>Allstate</th><th>Lib Mutual</th><th>USAA</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Bundle</td><td class="dm-val">25%</td><td class="dm-val">12%</td><td class="dm-val">17%</td><td class="dm-val">25%</td><td class="dm-val">25%</td><td class="dm-val">N/A</td></tr>
+                <tr class="highlight-row"><td>Telematics</td><td class="dm-val">26%</td><td class="dm-val">30%</td><td class="dm-val">30%</td><td class="dm-val">40%</td><td class="dm-val">30%</td><td class="dm-val">N/A</td></tr>
+                <tr><td>Multi-Vehicle</td><td class="dm-val">25%</td><td class="dm-val">12%</td><td class="dm-val">20%</td><td class="dm-val">25%</td><td class="dm-val">10%</td><td class="dm-val">N/A</td></tr>
+                <tr class="highlight-row"><td>Good Student</td><td class="dm-val">15%</td><td class="dm-val">10%</td><td class="dm-val">25%</td><td class="dm-val">N/A</td><td class="dm-val">23%</td><td class="dm-val">N/A</td></tr>
+                <tr><td>Paperless/AutoPay</td><td class="dm-val">5%</td><td class="dm-val">9%</td><td class="dm-val">5%</td><td class="dm-val">5%</td><td class="dm-val">5%</td><td class="dm-val">3%</td></tr>
+                <tr class="highlight-row"><td>Low Mileage</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">30%</td><td class="dm-val">N/A</td></tr>
+                <tr><td>Military</td><td class="dm-val">15%</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">15%</td></tr>
+                <tr class="highlight-row"><td>Loyalty (3+ yrs)</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">10%</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td></tr>
+                <tr><td>Anti-Theft</td><td class="dm-val">25%</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td><td class="dm-val">N/A</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Static Sections always visible -->
+      <div class="card section-gap">
+        <h2>📁 Documents to Gather Before Quoting</h2>
+        <ul class="checklist" id="doc-checklist">
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Driver's license (all drivers in household)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Vehicle VIN number</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Current declarations page (if switching)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Proof of continuous insurance (3+ years)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Social Security Number (for credit check)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Vehicle registration / title</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Odometer reading (for low-mileage discount)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Home/renters policy number (for bundle)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Student GPA transcript (if applicable)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Military ID / DD-214 (if applicable)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Current employer info (affinity discounts)</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>Defensive driving course certificate (if any)</span></li>
+        </ul>
+      </div>
+
+      <div class="card section-gap">
+        <h2>❓ Questions to Ask Your Agent</h2>
+        <ul class="checklist" id="agent-checklist">
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Am I getting the age-25 rate reduction? When exactly does it apply?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"What's the exact % reduction at my renewal after I turn 25?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Is your telematics program (DriveEasy/Snapshot/Drive Safe) available in Alabama?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Can I stack telematics + bundle + multi-vehicle discounts simultaneously?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Do you offer a continuous insurance discount for no coverage gaps?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Is there an employer affinity or alumni association discount for my company?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"What loyalty milestones unlock additional rate reductions?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Does my anti-theft system qualify for a discount and by how much?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Will you provide the new rate in writing after I turn 25?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"What's your claim-free renewal reward after 3 and 5 years?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"If I improve my credit score, how often can I re-rate my policy?"</span></li>
+          <li><div class="check-box" onclick="toggleCheck(this)"></div><span>"Are there any discounts I currently qualify for that are not applied to my policy?"</span></li>
+        </ul>
+      </div>
+
+      <div class="disclaimer">
+        ⚠️ <strong>Disclaimer:</strong> All premium estimates are directional only, based on published 2025–26 industry averages from Bankrate, NerdWallet, Insurify, and LendingTree adjusted by transparent multipliers. Actual premiums require carrier-specific underwriting and will vary. Pull real quotes from at least 3 carriers before making any decision. USAA is available only to military members, veterans, and their families.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = {
+  geico: 1900, progressive: 2050, statefarm: 1600, allstate: 2950, liberty: 2350, usaa: 1335
+};
+const STATE_F = {
+  AL:{geico:.93,progressive:1.00,statefarm:.96,allstate:.85,liberty:.95,usaa:.92},
+  TX:{geico:1.12,progressive:1.15,statefarm:1.08,allstate:1.20,liberty:1.10,usaa:1.00},
+  FL:{geico:1.25,progressive:1.30,statefarm:1.20,allstate:1.35,liberty:1.28,usaa:1.10},
+  CA:{geico:1.18,progressive:1.22,statefarm:1.15,allstate:1.25,liberty:1.20,usaa:1.05},
+  NY:{geico:1.35,progressive:1.40,statefarm:1.30,allstate:1.45,liberty:1.38,usaa:1.20},
+  OH:{geico:.88,progressive:.90,statefarm:.87,allstate:.95,liberty:.89,usaa:.85},
+  GA:{geico:1.05,progressive:1.08,statefarm:1.02,allstate:1.10,liberty:1.06,usaa:.98},
+  TN:{geico:.91,progressive:.94,statefarm:.89,allstate:.98,liberty:.93,usaa:.88}
+};
+function ageMult(a){
+  a=parseInt(a);
+  if(a<20)return 2.10;
+  if(a<21)return 1.85;
+  if(a<22)return 1.65;
+  if(a<23)return 1.45;
+  if(a<24)return 1.28;
+  if(a<25)return 1.18;
+  if(a<26)return 1.07;
+  if(a<30)return 0.97;
+  if(a<40)return 0.92;
+  if(a<50)return 0.88;
+  if(a<60)return 0.90;
+  if(a<70)return 0.95;
+  return 1.10;
+}
+const VCLASS_F={sedan:1.00,suv:1.05,truck:1.03,sports:1.45,ev:1.12,luxury:1.30,minivan:.95};
+const MILEAGE_F={low:.82,medium:1.00,high:1.12,very_high:1.28};
+const CREDIT_F={excellent:.92,good:1.00,fair:1.18,poor:1.45};
+const MARITAL_F={single:1.00,married:.94};
+const COVERAGE_F={state_min:.60,standard:1.00,premium:1.30};
+
+const DISCOUNTS = {
+  geico:     {bundle:.25,telematics:.26,multivehicle:.25,paperless:.05,goodstudent:.15,loyalty:0,military:.15,newcar:.08,antitheft:.25},
+  progressive:{bundle:.12,telematics:.30,multivehicle:.12,paperless:.09,goodstudent:.10,loyalty:.05,military:0,newcar:.08,antitheft:0},
+  statefarm:  {bundle:.17,telematics:.30,multivehicle:.20,paperless:.05,goodstudent:.25,loyalty:.05,military:0,newcar:.10,antitheft:.15},
+  allstate:   {bundle:.25,telematics:.40,multivehicle:.25,paperless:.05,goodstudent:0,loyalty:.10,military:0,newcar:.10,antitheft:.10},
+  liberty:    {bundle:.25,telematics:.30,multivehicle:.10,paperless:.05,goodstudent:.23,loyalty:.05,military:0,newcar:.10,antitheft:.15},
+  usaa:       {bundle:.10,telematics:0,multivehicle:.10,paperless:.03,goodstudent:.08,loyalty:.05,military:.15,newcar:.10,antitheft:.10}
+};
+const NAMES={geico:'Geico',progressive:'Progressive',statefarm:'State Farm',allstate:'Allstate',liberty:'Liberty Mutual',usaa:'USAA'};
+
+function calculate(){
+  const age=parseInt(document.getElementById('age').value)||24;
+  const state=document.getElementById('state').value;
+  const vc=document.getElementById('vclass').value;
+  const mil=document.getElementById('mileage').value;
+  const cred=document.getElementById('credit').value;
+  const mar=document.getElementById('marital').value;
+  const cov=document.getElementById('coverage').value;
+  const acc=parseInt(document.getElementById('accidents').value)||0;
+  const vio=parseInt(document.getElementById('violations').value)||0;
+  const dui=parseInt(document.getElementById('dui').value)||0;
+  const yrs=parseInt(document.getElementById('years_licensed').value)||6;
+  const sf=STATE_F[state]||STATE_F['AL'];
+  const ylMult=yrs<2?1.30:yrs<4?1.15:yrs<7?1.05:1.00;
+  const accMult=Math.pow(1.40,acc);
+  const vioMult=Math.pow(1.25,vio);
+  const duiMult=Math.pow(1.85,dui);
+  const dSelected={bundle:document.getElementById('d_bundle').checked,telematics:document.getElementById('d_telematics').checked,multivehicle:document.getElementById('d_multivehicle').checked,paperless:document.getElementById('d_paperless').checked,goodstudent:document.getElementById('d_goodstudent').checked,loyalty:document.getElementById('d_loyalty').checked,military:document.getElementById('d_military').checked,newcar:document.getElementById('d_newcar').checked,antitheft:document.getElementById('d_antitheft').checked};
+  const results=[];
+  for(const key of Object.keys(NAMES)){
+    const base=BASE[key]*sf[key]*COVERAGE_F[cov]*ageMult(age)*VCLASS_F[vc]*MILEAGE_F[mil]*MARITAL_F[mar]*CREDIT_F[cred]*accMult*vioMult*duiMult*ylMult;
+    let mult=1;const savings={};
+    for(const d of Object.keys(dSelected)){
+      if(dSelected[d]&&DISCOUNTS[key][d]>0){
+        savings[d]=base*mult*DISCOUNTS[key][d];
+        mult*=(1-DISCOUNTS[key][d]);
+      }
+    }
+    const final=Math.round(base*mult);
+    const totalSaved=Math.round(base-final);
+    const discPct=base>0?Math.round((1-final/base)*100):0;
+    results.push({key,name:NAMES[key],base:Math.round(base),final,totalSaved,discPct,savings});
+  }
+  results.sort((a,b)=>a.final-b.final);
+  const best=results[0];
+  const maxFinal=results[results.length-1].final;
+  document.getElementById('summary-card').innerHTML=`<div style="font-size:.85rem;opacity:.8;margin-bottom:.25rem;">🏆 Cheapest Carrier for Your Profile</div><div class="carrier-name">${best.name}</div><div class="price">$${best.final.toLocaleString()}/yr</div><div class="monthly">~$${Math.round(best.final/12)}/mo &nbsp;|&nbsp; You save $${best.totalSaved.toLocaleString()} vs base</div>`;
+  const aCallout=document.getElementById('age-callout');
+  if(age===24||age===25){
+    const drop=age===24?9:0;
+    const est=age===24?Math.round(best.final*.91):best.final;
+    aCallout.className='age-callout milestone';
+    aCallout.innerHTML=age===24?`🎂 <strong>Age-25 Milestone Alert!</strong> You're 1 year away. At 25, expect roughly <strong>~9% rate drop</strong>. Based on your profile, that's ~$${Math.round(best.final*.09)}/yr saved at ${best.name}. Ask your agent to confirm in writing.`:`🎉 <strong>You just hit 25!</strong> Your age-25 reduction should be active. If not, call your carrier immediately — don't leave $${Math.round(best.final*.09)}/yr on the table.`;
+  } else if(age<25){
+    aCallout.className='age-callout future';
+    aCallout.innerHTML=`📅 <strong>Age-25 reduction applies at age 25.</strong> You have ${25-age} year(s) to go. Expect roughly <strong>9% drop</strong> (~$${Math.round(best.final*.09)}/yr at ${best.name}) when you hit that milestone.`;
+  } else {
+    aCallout.className='age-callout past';
+    aCallout.innerHTML=`✅ <strong>You're past the age-25 milestone.</strong> Your rates should already reflect the age-25 reduction. Focus on telematics and loyalty incentives for further savings.`;
+  }
+  const tbody=document.getElementById('results-table');
+  tbody.innerHTML=results.map((r,i)=>`<tr><td>${i===0?'<span class="badge badge-best">Best</span> ':''}<strong>${r.name}</strong></td><td>$${r.base.toLocaleString()}</td><td>${r.discPct}%</td><td><strong>$${r.final.toLocaleString()}</strong></td><td>$${Math.round(r.final/12)}</td><td><div class="bar-cell"><div class="bar" style="width:${Math.round(r.final/maxFinal*120)}px"></div><span style="font-size:.75rem;color:var(--muted)">$${r.final.toLocaleString()}</span></div></td></tr>`).join('');
+  const dcDiv=document.getElementById('discount-cards');
+  dcDiv.innerHTML=results.map(r=>{
+    const sItems=Object.entries(r.savings).map(([k,v])=>`<div class="d-item"><span>${k.charAt(0).toUpperCase()+k.slice(1)}</span><span>-$${Math.round(v)}</span></div>`).join('');
+    return `<div class="d-card ${r.totalSaved>0?'active':''}">
+      <div class="d-carrier">${r.name}</div>
+      <div style="font-size:.8rem;color:var(--muted)">Base: $${r.base.toLocaleString()}</div>
+      ${sItems||'<div class="d-item"><span>No discounts selected</span></div>'}
+      <div style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border);font-weight:700;font-size:.85rem;color:var(--green)">Saved: $${r.totalSaved.toLocaleString()} (${r.discPct}%)</div>
+    </div>`;
+  }).join('');
+  document.getElementById('results').style.display='block';
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function toggleCheck(el){
+  el.classList.toggle('checked');
+  el.closest('li').classList.toggle('done');
+}
+
+function toggleTheme(){
+  const d=document.documentElement;
+  const isDark=d.getAttribute('data-theme')==='dark';
+  d.setAttribute('data-theme',isDark?'light':'dark');
+  document.querySelector('.theme-btn').textContent=isDark?'🌙 Dark Mode':'☀️ Light Mode';
+}
+
+// Auto-calculate on load
+window.onload=()=>calculate();
+</script>
+</body>
+</html>
